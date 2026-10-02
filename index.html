@@ -3,115 +3,612 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>车辆安全密码生成器</title>
-    <meta name="description" content="基于VIN和日期生成车辆安全密码的工具">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="./index.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent
+        }
+
+        html,
+        body {
+            height: 100%;
+            overflow: hidden
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f7fa;
+            color: #1e293b;
+        }
+
+        .app {
+            width: 100%;
+            height: 100dvh;
+            display: flex;
+            flex-direction: column;
+            padding: 12px 14px;
+            gap: 10px;
+            overflow: hidden;
+        }
+
+        .section-label {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #475569;
+            margin-bottom: 6px;
+        }
+
+        .vin-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 8px;
+            flex-shrink: 0;
+        }
+
+        .vin-grid-item {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #fff;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 14px 0;
+            font-size: 1.5rem;
+            font-weight: 700;
+            font-family: 'Courier New', monospace;
+            color: #1e293b;
+            cursor: pointer;
+            user-select: none;
+            transition: all .15s;
+        }
+
+        .vin-grid-item:active {
+            transform: scale(0.94)
+        }
+
+        .vin-grid-item.selected {
+            border-color: #4DA89D;
+            background: #4DA89D;
+            color: #fff;
+            box-shadow: 0 4px 12px rgba(77, 168, 157, 0.4);
+        }
+
+        .date-row {
+            display: flex;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+
+        .date-row input[type="date"] {
+            flex: 1;
+            padding: 12px 14px;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            font-size: 0.95rem;
+            color: #1e293b;
+            background: #fff;
+            outline: none;
+            -webkit-appearance: none;
+            font-family: inherit;
+        }
+
+        .date-row input[type="date"]:focus {
+            border-color: #4DA89D
+        }
+
+        .result-row {
+            display: flex;
+            gap: 8px;
+            align-items: stretch;
+            flex-shrink: 0;
+        }
+
+        .result-row textarea {
+            flex: 1;
+            padding: 12px 14px;
+            height: 52px;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            font-size: 1.3rem;
+            font-weight: 700;
+            font-family: 'Courier New', monospace;
+            color: #4DA89D;
+            background: #fff;
+            resize: none;
+            outline: none;
+            text-align: center;
+            letter-spacing: 3px;
+            overflow: hidden;
+        }
+
+        .copy-btn {
+            padding: 0 14px;
+            border: none;
+            border-radius: 10px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            background: #4DA89D;
+            color: #fff;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            white-space: nowrap;
+            font-family: inherit;
+            transition: all .15s;
+        }
+
+        .copy-btn:active {
+            transform: scale(0.96)
+        }
+
+        .copy-btn.adb {
+            background: #64748b
+        }
+
+        .monthly-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+            gap: 8px;
+        }
+
+        .monthly-header .section-label {
+            margin-bottom: 0
+        }
+
+        .monthly-actions {
+            display: flex;
+            gap: 6px;
+        }
+
+        .btn-copy-monthly {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            background: #4DA89D;
+            color: #fff;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-family: inherit;
+            transition: all .15s;
+            white-space: nowrap;
+        }
+
+        .btn-copy-monthly:active {
+            transform: scale(0.96)
+        }
+
+        .btn-copy-monthly.adb {
+            background: #64748b
+        }
+
+        .monthly-list {
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            min-height: 0;
+            -webkit-overflow-scrolling: touch;
+            padding-bottom: 4px;
+        }
+
+        .monthly-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            background: #fff;
+            border-radius: 10px;
+            font-size: 0.85rem;
+            flex-shrink: 0;
+            gap: 8px;
+        }
+
+        .monthly-item .day {
+            color: #94a3b8;
+            font-weight: 600;
+            min-width: 90px;
+            font-size: 0.8rem
+        }
+
+        .monthly-item .pwd {
+            font-family: 'Courier New', monospace;
+            font-weight: 700;
+            color: #4DA89D;
+            letter-spacing: 1.5px;
+            font-size: 0.95rem;
+            flex: 1;
+            text-align: center;
+        }
+
+        .monthly-item .item-btns {
+            display: flex;
+            gap: 6px;
+            flex-shrink: 0;
+        }
+
+        .item-btn {
+            padding: 6px 10px;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            background: #e2e8f0;
+            color: #475569;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-family: inherit;
+            transition: all .15s;
+        }
+
+        .item-btn:active {
+            transform: scale(0.94)
+        }
+
+        .item-btn.copy-pwd {
+            background: #4DA89D;
+            color: #fff
+        }
+
+        .item-btn.copy-adb {
+            background: #64748b;
+            color: #fff
+        }
+
+        .empty-tip {
+            text-align: center;
+            padding: 24px 0;
+            color: #cbd5e1;
+            font-size: 0.85rem;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%) translateY(80px);
+            background: #1e293b;
+            color: #fff;
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-size: 0.8rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            opacity: 0;
+            transition: all .3s;
+            pointer-events: none;
+            z-index: 9999;
+            white-space: nowrap;
+        }
+
+        .toast.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1
+        }
+
+        .toast-icon {
+            color: #4ade80
+        }
+
+        #hidden-area {
+            position: absolute;
+            left: -99999px;
+            top: -99999px;
+            width: 1px;
+            height: 1px;
+            overflow: hidden;
+        }
+    </style>
 </head>
 
 <body>
-    <div class="container">
-        <div class="theme-controls">
-            <button class="theme-btn" id="theme-toggle" aria-label="切换主题">
-                <i class="fas fa-palette"></i>
+
+    <div class="app">
+        <header>
+            <h2 style="text-align: center;">哪吒 ADB 密码生成</h2>
+            <p style="text-align: center;margin-top: 8px;">请选择自己车辆最后一位车架号的数字</p>
+        </header>
+        <div>
+
+            <div class="vin-grid" id="vin-grid"></div>
+        </div>
+
+        <div class="date-row">
+            <input type="date" id="date-display">
+        </div>
+
+        <div class="result-row">
+            <textarea id="result-display" readonly placeholder="---"></textarea>
+            <button class="copy-btn" id="copy-result-display">
+                <i class="far fa-copy"></i>
             </button>
-            <div class="theme-picker" id="theme-picker">
-                <h4>选择主题色</h4>
-                <div class="theme-options">
-                    <div class="theme-option" data-color="#4DA89D" style="background: #4DA89D;"></div>
-                    <div class="theme-option" data-color="#4361ee" style="background: #4361ee;"></div>
-                    <div class="theme-option" data-color="#3a0ca3" style="background: #3a0ca3;"></div>
-                    <div class="theme-option" data-color="#7209b7" style="background: #7209b7;"></div>
-                    <div class="theme-option" data-color="#f72585" style="background: #f72585;"></div>
-                    <div class="theme-option" data-color="#480ca8" style="background: #480ca8;"></div>
-                    <div class="theme-option" data-color="#4cc9f0" style="background: #4cc9f0;"></div>
-                    <div class="theme-option" data-color="#4895ef" style="background: #4895ef;"></div>
-                    <div class="theme-option" data-color="#2ec4b6" style="background: #2ec4b6;"></div>
-                    <div class="theme-option" data-color="#e71d36" style="background: #e71d36;"></div>
-                    <div class="theme-option" data-color="#ff9f1c" style="background: #ff9f1c;"></div>
-                    <div class="theme-option" data-color="#011627" style="background: #011627;"></div>
-                </div>
-                <div class="custom-color-picker">
-                    <label for="custom-color">自定义颜色</label>
-                    <input type="color" id="custom-color" value="#4DA89D">
-                </div>
-                <div class="theme-actions">
-                    <button class="btn secondary" id="theme-cancel">取消</button>
-                    <button class="btn primary" id="theme-confirm">确定</button>
-                </div>
+            <button class="copy-btn adb" id="copy-adb-display">
+                <i class="fas fa-terminal"></i>
+            </button>
+        </div>
+
+        <div class="monthly-header">
+            <div class="section-label">月度密码</div>
+            <div class="monthly-actions">
+                <button class="btn-copy-monthly" id="copy-monthly">
+                    <i class="fas fa-copy"></i> 复制
+                </button>
+                <button class="btn-copy-monthly adb" id="copy-monthly-adb">
+                    <i class="fas fa-terminal"></i> 复制命令
+                </button>
             </div>
         </div>
 
-        <header class="header">
-            <h1>车辆安全密码系统</h1>
-            <p>VIN与日期加密认证服务</p>
-        </header>
+        <div class="monthly-list" id="monthly-list-display">
+            <div class="empty-tip">选择数字后自动生成</div>
+        </div>
+    </div>
 
-        <main class="content">
+    <div class="toast" id="toast-display">
+        <i class="fas fa-check-circle toast-icon"></i>
+        <span id="toast-message-display">已复制</span>
+    </div>
+
+    <div id="hidden-area">
+        <div class="container">
+            <div class="theme-controls">
+                <button class="theme-btn" id="theme-toggle"></button>
+                <div class="theme-picker" id="theme-picker">
+                    <div class="theme-option" data-color="#4DA89D"></div>
+                    <div class="theme-option" data-color="#4361ee"></div>
+                    <input type="color" id="custom-color" value="#4DA89D">
+                    <button class="btn secondary" id="theme-cancel"></button>
+                    <button class="btn primary" id="theme-confirm"></button>
+                </div>
+            </div>
             <form id="code-form">
-                <div class="form-group">
-                    <label for="vin">车辆VIN码</label>
-                    <div class="input-wrapper">
-                        <input type="text" id="vin" placeholder="请输入17位VIN码" value=""
-                            aria-describedby="vin-error" required>
-                        <div class="error-message" id="vin-error">VIN码格式不正确（需17位大写字母数字组合）</div>
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label for="date">有效期</label>
-                    <div class="input-wrapper">
-                        <input type="date" id="date" min="2000-01-01" required aria-describedby="date-error">
-                        <div class="error-message" id="date-error">请选择有效日期</div>
-                    </div>
-                </div>
-
-                <div class="button-group">
-                    <button type="button" class="btn primary" id="generate-daily">
-                        <i class="fas fa-key"></i> 生成当天密码
-                    </button>
-                    <button type="button" class="btn" id="generate-monthly">
-                        <i class="fas fa-calendar-alt"></i> 生成月度密码
-                    </button>
-                </div>
-            </form>
-
-            <section class="result-container" aria-live="polite">
-                <h2>生成结果</h2>
+                <input type="text" id="vin" value="">
+                <input type="date" id="date" min="2000-01-01">
+                <div class="error-message" id="vin-error"></div>
+                <div class="error-message" id="date-error"></div>
+                <button type="button" class="btn primary" id="generate-daily"></button>
+                <button type="button" class="btn" id="generate-monthly"></button>
                 <div class="result-box" id="daily-result">
-                    <textarea id="result" rows="1" readonly aria-label="生成的密码"></textarea>
-                    <button class="btn copy-btn" id="copy-result" aria-label="复制密码">
-                        <i class="far fa-copy"></i> 复制密码
-                    </button>
-                    <button class="btn copy-btn copy-btn-adb" id="copy-result-adb" aria-label="复制密码">
-                        <i class="far fa-copy"></i> 复制ADB命令
-                    </button>
-
+                    <textarea id="result" rows="1" readonly></textarea>
+                    <button class="btn copy-btn" id="copy-result"></button>
+                    <button class="btn copy-btn copy-btn-adb" id="copy-result-adb"></button>
                 </div>
-                <div class="button-group" style="display: none;">
-
-                    <button class="btn" id="copy-all-monthly" style="display: none;">
-                        <i class="fas fa-copy"></i> 复制整月密码
-                    </button>
-                    <button class="btn" id="copy-all-monthly-adb" style="display: none;">
-                        <i class="fas fa-copy"></i> 复制整月ADB命令
-                    </button>
-                </div>
+                <button class="btn" id="copy-all-monthly"></button>
+                <button class="btn" id="copy-all-monthly-adb"></button>
                 <div id="monthly-results">
                     <div id="monthly-results-list"></div>
                 </div>
-            </section>
-        </main>
+            </form>
+            <div class="toast" id="toast">
+                <i class="fas fa-check-circle toast-icon"></i>
+                <span id="toast-message"></span>
+            </div>
+        </div>
     </div>
 
-    <div class="toast" id="toast" role="alert">
-        <i class="fas fa-check-circle toast-icon"></i>
-        <span id="toast-message">密码已复制到剪贴板</span>
-    </div>
-    <script src="./index.js"></script>
+    <script src="index.js"></script>
 
+    <script>
+        (function () {
+            var vinGrid = document.getElementById('vin-grid');
+            var dateDisplay = document.getElementById('date-display');
+            var resultDisplay = document.getElementById('result-display');
+            var monthlyDisplay = document.getElementById('monthly-list-display');
+            var toastDisplay = document.getElementById('toast-display');
+            var toastMsgDisp = document.getElementById('toast-message-display');
+
+            var hidVin = document.getElementById('vin');
+            var hidDate = document.getElementById('date');
+            var hidDailyBtn = document.getElementById('generate-daily');
+            var hidMonthlyBtn = document.getElementById('generate-monthly');
+            var hidResult = document.getElementById('result');
+            var hidMonthlyList = document.getElementById('monthly-results-list');
+
+            var monthlyData = [];
+            var currentDayPwd = '';
+
+            function showToast(msg) {
+                toastMsgDisp.textContent = msg;
+                toastDisplay.classList.add('show');
+                clearTimeout(window._toastTimer);
+                window._toastTimer = setTimeout(function () { toastDisplay.classList.remove('show'); }, 1800);
+            }
+
+            function getToday() {
+                var d = new Date();
+                return d.getFullYear() + '-' +
+                    String(d.getMonth() + 1).padStart(2, '0') + '-' +
+                    String(d.getDate()).padStart(2, '0');
+            }
+
+            var today = getToday();
+            dateDisplay.value = today;
+            hidDate.value = today;
+
+            for (var i = 0; i <= 9; i++) {
+                (function (digit) {
+                    var div = document.createElement('div');
+                    div.className = 'vin-grid-item';
+                    div.textContent = digit;
+                    div.dataset.value = digit;
+                    div.addEventListener('click', function () {
+                        var items = vinGrid.querySelectorAll('.vin-grid-item');
+                        for (var j = 0; j < items.length; j++) items[j].classList.remove('selected');
+                        div.classList.add('selected');
+
+                        hidVin.value = '0'.repeat(16) + digit;
+                        hidDailyBtn.click();
+
+                        setTimeout(function () {
+                            resultDisplay.value = hidResult.value;
+                            currentDayPwd = hidResult.value;
+                            syncMonthly();
+                        }, 0);
+                    });
+                    vinGrid.appendChild(div);
+                })(i);
+            }
+
+            dateDisplay.addEventListener('change', function () {
+                hidDate.value = dateDisplay.value;
+                if (hidVin.value && hidVin.value.length === 17) {
+                    hidDailyBtn.click();
+                    setTimeout(function () {
+                        resultDisplay.value = hidResult.value;
+                        currentDayPwd = hidResult.value;
+                        syncMonthly();
+                    }, 0);
+                }
+            });
+
+            // 只读 index.js 生成的月度列表，按它原本的顺序显示；如果当天缺失，按日期顺序插入
+            function syncMonthly() {
+                if (!hidVin.value || hidVin.value.length !== 17 || !hidDate.value) {
+                    monthlyDisplay.innerHTML = '<div class="empty-tip">选择数字后自动生成</div>';
+                    monthlyData = [];
+                    return;
+                }
+
+                hidMonthlyBtn.click();
+
+                var items = hidMonthlyList.querySelectorAll('.monthly-result-item');
+                monthlyData = [];
+
+                for (var i = 0; i < items.length; i++) {
+                    var el = items[i];
+                    var dateEl = el.querySelector('.monthly-result-date');
+                    var codeEl = el.querySelector('.monthly-result-code');
+                    if (!dateEl || !codeEl) continue;
+                    monthlyData.push({
+                        day: dateEl.textContent.trim(),
+                        pwd: codeEl.textContent.trim()
+                    });
+                }
+
+                // 如果当天不在列表里，按日期顺序插入（而不是强插最前）
+                var todayStr = dateDisplay.value;
+                var found = false;
+                for (var k = 0; k < monthlyData.length; k++) {
+                    if (monthlyData[k].day === todayStr) { found = true; break; }
+                }
+                if (!found && currentDayPwd) {
+                    var insertAt = monthlyData.length;
+                    for (var m = 0; m < monthlyData.length; m++) {
+                        if (monthlyData[m].day > todayStr) { insertAt = m; break; }
+                    }
+                    monthlyData.splice(insertAt, 0, { day: todayStr, pwd: currentDayPwd });
+                }
+
+                // 渲染
+                monthlyDisplay.innerHTML = '';
+                for (var n = 0; n < monthlyData.length; n++) {
+                    (function (entry) {
+                        var row = document.createElement('div');
+                        row.className = 'monthly-item';
+
+                        var daySpan = document.createElement('span');
+                        daySpan.className = 'day';
+                        daySpan.textContent = entry.day;
+
+                        var pwdSpan = document.createElement('span');
+                        pwdSpan.className = 'pwd';
+                        pwdSpan.textContent = entry.pwd;
+
+                        var btns = document.createElement('div');
+                        btns.className = 'item-btns';
+
+                        var copyPwdBtn = document.createElement('button');
+                        copyPwdBtn.className = 'item-btn copy-pwd';
+                        copyPwdBtn.innerHTML = '<i class="far fa-copy"></i>';
+                        copyPwdBtn.title = '复制密码';
+                        copyPwdBtn.addEventListener('click', function () {
+                            copyText(entry.pwd, '密码已复制');
+                        });
+
+                        var copyAdbBtn = document.createElement('button');
+                        copyAdbBtn.className = 'item-btn copy-adb';
+                        copyAdbBtn.innerHTML = '<i class="fas fa-terminal"></i>';
+                        copyAdbBtn.title = '复制ADB命令';
+                        copyAdbBtn.addEventListener('click', function () {
+                            copyText('settings put global dev_adb_auth_passwd ' + entry.pwd, 'ADB命令已复制');
+                        });
+
+                        btns.appendChild(copyPwdBtn);
+                        btns.appendChild(copyAdbBtn);
+                        row.appendChild(daySpan);
+                        row.appendChild(pwdSpan);
+                        row.appendChild(btns);
+                        monthlyDisplay.appendChild(row);
+                    })(monthlyData[n]);
+                }
+            }
+
+            function copyText(text, msg) {
+                if (!text) { showToast('暂无内容'); return; }
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(text).then(function () {
+                        showToast(msg || '已复制');
+                    }).catch(function () { fallbackCopy(text, msg); });
+                } else {
+                    fallbackCopy(text, msg);
+                }
+            }
+
+            function fallbackCopy(text, msg) {
+                var ta = document.createElement('textarea');
+                ta.value = text;
+                ta.style.position = 'fixed';
+                ta.style.opacity = '0';
+                document.body.appendChild(ta);
+                ta.select();
+                try { document.execCommand('copy'); showToast(msg || '已复制'); }
+                catch (e) { showToast('复制失败'); }
+                document.body.removeChild(ta);
+            }
+
+            document.getElementById('copy-result-display').addEventListener('click', function () {
+                copyText(resultDisplay.value.trim(), '密码已复制');
+            });
+
+            document.getElementById('copy-adb-display').addEventListener('click', function () {
+                var val = resultDisplay.value.trim();
+                if (!val) { showToast('暂无密码'); return; }
+                copyText('settings put global dev_adb_auth_passwd ' + val, 'ADB命令已复制');
+            });
+
+            document.getElementById('copy-monthly').addEventListener('click', function () {
+                if (!monthlyData.length) { showToast('请先生成月度密码'); return; }
+                var lines = monthlyData.map(function (item) {
+                    return item.day + ': ' + item.pwd;
+                });
+                copyText(lines.join('\n'), '整月密码已复制');
+            });
+
+            document.getElementById('copy-monthly-adb').addEventListener('click', function () {
+                if (!monthlyData.length) { showToast('请先生成月度密码'); return; }
+                var lines = monthlyData.map(function (item) {
+                    return 'settings put global dev_adb_auth_passwd ' + item.pwd;
+                });
+                copyText(lines.join('\n'), '整月ADB命令已复制');
+            });
+        })();
+    </script>
 </body>
 
 </html>
